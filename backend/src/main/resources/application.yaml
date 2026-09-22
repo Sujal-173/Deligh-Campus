@@ -2,10 +2,10 @@ spring:
   application:
     name: deligh-campus-api
 
-  # Allows local development settings in backend/.env while keeping deployment
-  # configuration available through regular environment variables.
+  # Local .env files are only for development. Production deployments must use
+  # the platform environment variables so the app never falls back to localhost.
   config:
-    import: optional:file:.env[.properties]
+    import: ${SPRING_CONFIG_IMPORT:optional:file:.env[.properties]}
 
   datasource:
     url: ${DATABASE_URL}
