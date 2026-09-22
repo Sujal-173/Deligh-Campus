@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: deligh-campus-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: deligh_campus
+      POSTGRES_USER: deligh_campus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - deligh-campus-postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deligh_campus -d deligh_campus"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    networks:
+      - deligh-campus-network
+
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: deligh-campus-backend
+    restart: unless-stopped
+
+    environment:
+      SERVER_PORT: 8081
+      DATABASE_URL: jdbc:postgresql://postgres:5432/deligh_campus
+      DATABASE_USERNAME: deligh_campus
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set before starting the backend}
+
+    ports:
+      - "8081:8081"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - deligh-campus-network
+
+
+volumes:
+  deligh-campus-postgres-data:
+
+
+networks:
+  deligh-campus-network:
+    driver: bridge

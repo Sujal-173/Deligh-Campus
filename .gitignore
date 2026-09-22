@@ -1,0 +1,37 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Dependencies and build output
+node_modules/
+.next/
+out/
+build/
+coverage/
+target/
+
+# Runtime logs and local data
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local tooling caches
+.npm-cache/
+.m2/
+.tooling/
+.java21-inspect/
+
+# Java generated files
+*.class
+
+# Vercel local state
+.vercel/

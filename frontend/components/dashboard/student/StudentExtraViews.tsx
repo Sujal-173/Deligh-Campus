@@ -1,0 +1,21 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Bell, Save, UserRound } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { studentProfileService } from "@/services/student/profile.service";
+import { studentNotificationService } from "@/services/student/notification.service";
+import type { AppNotification, StudentProfile } from "@/types/student";
+
+export function StudentProfileView() {
+  const [profile,setProfile]=useState<StudentProfile|null>(null);const [loading,setLoading]=useState(true);const [saving,setSaving]=useState(false);
+  useEffect(()=>{studentProfileService.getProfile().then(setProfile).catch(e=>toast.error(e instanceof Error?e.message:"Unable to load profile")).finally(()=>setLoading(false))},[]);
+  if(loading)return <Card className="p-6">Loading profile…</Card>;if(!profile)return <Card className="p-6">Profile unavailable.</Card>;
+  return <div className="space-y-6"><div><h1 className="font-display text-2xl font-bold text-primary">My Profile</h1><p className="mt-1 text-sm text-grey-60">Keep your student identity and career profile current.</p></div><Card className="p-6"><div className="flex items-center gap-4 border-b border-grey-20 pb-5"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary-10 text-secondary"><UserRound/></div><div><p className="font-semibold">{profile.fullName}</p><p className="text-sm text-grey-50">{profile.email}</p></div></div><div className="mt-6 grid gap-4 md:grid-cols-2"><Input value={profile.fullName} onChange={e=>setProfile({...profile,fullName:e.target.value})} placeholder="Full name"/><Input value={profile.phone} onChange={e=>setProfile({...profile,phone:e.target.value})} placeholder="Phone"/><Input value={profile.roleTitle} onChange={e=>setProfile({...profile,roleTitle:e.target.value})} placeholder="Role title"/><Input value={profile.gender??""} onChange={e=>setProfile({...profile,gender:e.target.value})} placeholder="Gender"/><textarea className="min-h-32 rounded-lg border border-grey-20 p-3 text-sm md:col-span-2" value={profile.about} onChange={e=>setProfile({...profile,about:e.target.value})} placeholder="About you"/></div><Button className="mt-4" disabled={saving} onClick={async()=>{setSaving(true);try{setProfile(await studentProfileService.updateProfile(profile));toast.success("Profile saved")}catch(e){toast.error(e instanceof Error?e.message:"Save failed")}finally{setSaving(false)}}}><Save className="h-4 w-4"/>{saving?"Saving…":"Save profile"}</Button></Card></div>;
+}
+
+export function StudentNotificationsView(){const [items,setItems]=useState<AppNotification[]>([]);const [loading,setLoading]=useState(true);useEffect(()=>{studentNotificationService.getAll().then(setItems).catch(e=>toast.error(e instanceof Error?e.message:"Unable to load notifications")).finally(()=>setLoading(false))},[]);if(loading)return <Card className="p-6">Loading notifications…</Card>;return <div className="space-y-6"><div><h1 className="font-display text-2xl font-bold text-primary">Notifications</h1><p className="mt-1 text-sm text-grey-60">Your latest learning and assessment updates.</p></div>{items.length?<div className="space-y-3">{items.map(n=><Card key={n.id} className={`p-5 ${n.read?"":"border-secondary/30"}`}><div className="flex gap-3"><Bell className="mt-1 h-4 w-4 text-secondary"/><div className="min-w-0 flex-1"><div className="flex flex-wrap justify-between gap-2"><h2 className="font-semibold">{n.title}</h2><span className="text-xs text-grey-50">{new Date(n.createdAt).toLocaleString()}</span></div><p className="mt-1 text-sm text-grey-60">{n.body}</p><div className="mt-3 flex gap-2">{!n.read&&<Button size="sm" variant="outline" onClick={async()=>{await studentNotificationService.markRead(n.id);setItems(v=>v.map(x=>x.id===n.id?{...x,read:true}:x))}}>Mark read</Button>}<Button size="sm" variant="ghost" onClick={async()=>{await studentNotificationService.remove(n.id);setItems(v=>v.filter(x=>x.id!==n.id))}}>Delete</Button></div></div></div></Card>)}</div>:<Card className="p-8 text-center text-sm text-grey-50">No notifications yet.</Card>}</div>;
+}

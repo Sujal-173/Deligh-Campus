@@ -1,0 +1,6 @@
+spring:
+  # Test the application with the same PostgreSQL configuration used locally.
+  # The production schema is managed exclusively by Flyway migrations.
+  jpa:
+    hibernate:
+      ddl-auto: validate

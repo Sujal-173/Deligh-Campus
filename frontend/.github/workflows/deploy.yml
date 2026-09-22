@@ -1,0 +1,282 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: frontend-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ========================================
+      # 1. CHECKOUT SOURCE CODE
+      # ========================================
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # ========================================
+      # 2. SETUP NODE.JS
+      # ========================================
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      # ========================================
+      # 3. INSTALL DEPENDENCIES
+      # ========================================
+      - name: Install dependencies
+        run: npm ci
+
+      # ========================================
+      # 4. BUILD PRODUCTION FRONTEND
+      # ========================================
+      - name: Build production frontend
+        env:
+          NEXT_PUBLIC_API_URL: https://delighcampus.itsdeligh.com/api/v1
+          NEXT_PUBLIC_AUTH_TOKEN_KEY: its_deligh_token
+          NODE_ENV: production
+        run: npm run build
+
+      # ========================================
+      # 5. VERIFY BUILD
+      # ========================================
+      - name: Verify production build
+        run: |
+          set -e
+
+          echo "========================================"
+          echo "NEXT.JS BUILD VERIFICATION"
+          echo "========================================"
+
+          test -d .next
+
+          echo "Build directory exists."
+
+          echo ""
+          echo "========================================"
+          echo "BUILD SIZE"
+          echo "========================================"
+
+          du -sh .next
+
+          echo ""
+          echo "========================================"
+          echo "PACKAGE INFORMATION"
+          echo "========================================"
+
+          node -v
+          npm -v
+
+      # ========================================
+      # 6. CREATE DEPLOYMENT PACKAGE
+      # ========================================
+      - name: Prepare deployment package
+        run: |
+          set -e
+
+          rm -rf deploy
+          mkdir -p deploy
+
+          cp -r .next deploy/
+          cp -r public deploy/
+          cp package.json deploy/
+          cp package-lock.json deploy/
+
+          tar -czf frontend-deploy.tar.gz -C deploy .
+
+          echo "========================================"
+          echo "DEPLOYMENT PACKAGE CREATED"
+          echo "========================================"
+
+          ls -lh frontend-deploy.tar.gz
+
+      # ========================================
+      # 7. UPLOAD PACKAGE TO VPS
+      # ========================================
+      - name: Copy frontend package to VPS
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: 22
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "frontend-deploy.tar.gz"
+          target: "/tmp/"
+          overwrite: true
+
+      # ========================================
+      # 8. DEPLOY AND RESTART FRONTEND
+      # ========================================
+      - name: Deploy frontend on VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: 22
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+
+            APP_DIR="/opt/apps/frontend-web"
+            DEPLOY_DIR="/tmp/frontend-deploy"
+
+            echo "========================================"
+            echo "FRONTEND DEPLOYMENT STARTED"
+            echo "========================================"
+
+            echo "Preparing temporary deployment directory..."
+
+            rm -rf "$DEPLOY_DIR"
+            mkdir -p "$DEPLOY_DIR"
+
+            echo "Extracting deployment package..."
+
+            tar -xzf /tmp/frontend-deploy.tar.gz -C "$DEPLOY_DIR"
+
+            echo "========================================"
+            echo "VERIFYING DEPLOYMENT FILES"
+            echo "========================================"
+
+            test -d "$DEPLOY_DIR/.next"
+            test -f "$DEPLOY_DIR/package.json"
+            test -f "$DEPLOY_DIR/package-lock.json"
+
+            echo "Deployment files verified."
+
+            echo "========================================"
+            echo "STOPPING FRONTEND SERVICE"
+            echo "========================================"
+
+            sudo systemctl stop frontend-web || true
+
+            echo "========================================"
+            echo "UPDATING APPLICATION FILES"
+            echo "========================================"
+
+            rm -rf "$APP_DIR/.next"
+            rm -rf "$APP_DIR/public"
+
+            cp -r "$DEPLOY_DIR/.next" "$APP_DIR/"
+            cp -r "$DEPLOY_DIR/public" "$APP_DIR/"
+            cp "$DEPLOY_DIR/package.json" "$APP_DIR/"
+            cp "$DEPLOY_DIR/package-lock.json" "$APP_DIR/"
+
+            echo "========================================"
+            echo "INSTALLING PRODUCTION DEPENDENCIES"
+            echo "========================================"
+
+            cd "$APP_DIR"
+
+            npm ci --omit=dev
+
+            echo "========================================"
+            echo "STARTING FRONTEND SERVICE"
+            echo "========================================"
+
+            sudo systemctl daemon-reload
+            sudo systemctl enable frontend-web
+            sudo systemctl restart frontend-web
+
+            echo ""
+            echo "========================================"
+            echo "WAITING FOR FRONTEND"
+            echo "========================================"
+
+            healthy=false
+
+            for i in {1..30}; do
+              if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
+                healthy=true
+                break
+              fi
+
+              echo "Frontend not ready yet... attempt $i/30"
+              sleep 2
+            done
+
+            if [ "$healthy" != "true" ]; then
+              echo ""
+              echo "Frontend did not become healthy within 60 seconds."
+
+              echo ""
+              echo "========================================"
+              echo "SYSTEMD STATUS"
+              echo "========================================"
+
+              sudo systemctl status frontend-web --no-pager || true
+
+              echo ""
+              echo "========================================"
+              echo "RECENT FRONTEND LOGS"
+              echo "========================================"
+
+              sudo journalctl -u frontend-web -n 100 --no-pager || true
+
+              exit 1
+            fi
+
+            echo ""
+            echo "========================================"
+            echo "FRONTEND SERVICE STATUS"
+            echo "========================================"
+
+            sudo systemctl is-active frontend-web
+
+            echo ""
+            echo "========================================"
+            echo "LOCAL FRONTEND TEST"
+            echo "========================================"
+
+            curl -I http://127.0.0.1:3000/
+
+            echo ""
+            echo "========================================"
+            echo "CLEANING TEMPORARY FILES"
+            echo "========================================"
+
+            rm -rf "$DEPLOY_DIR"
+            rm -f /tmp/frontend-deploy.tar.gz
+
+            echo ""
+            echo "========================================"
+            echo "FRONTEND DEPLOYMENT SUCCESSFUL"
+            echo "========================================"
+
+      # ========================================
+      # 9. FINAL PUBLIC HTTPS TEST
+      # ========================================
+      - name: Test public frontend
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: 22
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "========================================"
+            echo "TESTING PUBLIC HTTPS FRONTEND"
+            echo "========================================"
+
+            curl -I --fail https://delighcampus.itsdeligh.com/
+
+            echo ""
+            echo "========================================"
+            echo "TESTING BACKEND THROUGH DOMAIN"
+            echo "========================================"
+
+            curl -I --fail https://delighcampus.itsdeligh.com/api/ping
+
+            echo ""
+            echo "========================================"
+            echo "PUBLIC DEPLOYMENT VERIFIED"
+            echo "========================================"

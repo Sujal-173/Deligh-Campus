@@ -1,0 +1,101 @@
+spring:
+  application:
+    name: deligh-campus-api
+
+  # Allows local development settings in backend/.env while keeping deployment
+  # configuration available through regular environment variables.
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_CONNECTION_POOL_SIZE:10}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: ${JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        format_sql: ${JPA_FORMAT_SQL:true}
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://www.googleapis.com/oauth2/v4/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: email
+
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: smtp.gmail.com
+
+server:
+  port: ${SERVER_PORT:8081}
+  error:
+    include-message: ${ERROR_INCLUDE_MESSAGE:never}
+    include-stacktrace: ${ERROR_INCLUDE_STACKTRACE:never}
+    include-exception: ${ERROR_INCLUDE_EXCEPTION:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS:health,info}
+  endpoint:
+    health:
+      show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
+
+app:
+  name: ${APP_NAME:Deligh Campus API}
+  version: ${APP_VERSION:1.0.0}
+  environment: ${APP_ENVIRONMENT:development}
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:3000}
+  
+  security:
+    jwt-secret: ${JWT_SECRET}
+    jwt-expiration-ms: ${JWT_EXPIRATION:86400000}
+    session-timeout-ms: ${SESSION_TIMEOUT_MS:1800000}
+  
+  database:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    connection-pool-size: ${DB_CONNECTION_POOL_SIZE:10}
+    connection-timeout-ms: ${DB_CONNECTION_TIMEOUT_MS:30000}
+  
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
