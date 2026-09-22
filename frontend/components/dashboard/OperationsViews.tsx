@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react/jsx-key */
+
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";

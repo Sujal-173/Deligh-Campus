@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
-export default function OAuth2CallbackPage() {
+function OAuth2CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,6 @@ export default function OAuth2CallbackPage() {
       }
 
       try {
-        // Send the authorization code to the backend
         const response = await fetch('/api/auth/oauth/callback', {
           method: 'POST',
           headers: {
@@ -45,15 +44,14 @@ export default function OAuth2CallbackPage() {
         }
 
         const data = await response.json();
-        
-        // Store the token and redirect to dashboard
+
         if (data.success && data.data) {
           toast.success('Successfully authenticated with Google');
           router.push('/dashboard');
         } else {
           throw new Error('Invalid response from server');
         }
-      } catch (err) {
+      } catch {
         setError('Authentication failed. Please try again.');
         toast.error('Authentication failed');
         setTimeout(() => router.push('/login?error=auth_failed'), 3000);
@@ -73,9 +71,7 @@ export default function OAuth2CallbackPage() {
             <div className="mb-4 flex justify-center">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             </div>
-            <h2 className="text-lg font-semibold text-primary">
-              Authenticating...
-            </h2>
+            <h2 className="text-lg font-semibold text-primary">Authenticating...</h2>
             <p className="mt-2 text-sm text-grey-60">
               Please wait while we complete your authentication.
             </p>
@@ -83,22 +79,37 @@ export default function OAuth2CallbackPage() {
         ) : error ? (
           <div className="text-center">
             <div className="mb-4 flex justify-center">
-              <div className="h-12 w-12 rounded-full bg-error-10 flex items-center justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-error-10">
                 <svg className="h-6 w-6 text-error-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
             </div>
-            <h2 className="text-lg font-semibold text-primary">
-              Authentication Failed
-            </h2>
+            <h2 className="text-lg font-semibold text-primary">Authentication Failed</h2>
             <p className="mt-2 text-sm text-grey-60">{error}</p>
-            <p className="mt-4 text-xs text-grey-50">
-              Redirecting to login page...
-            </p>
+            <p className="mt-4 text-xs text-grey-50">Redirecting to login page...</p>
           </div>
         ) : null}
       </Card>
     </div>
+  );
+}
+
+export default function OAuth2CallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-grey-10">
+          <Card className="w-full max-w-md p-8 text-center">
+            <div className="mb-4 flex justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+            <h2 className="text-lg font-semibold text-primary">Loading...</h2>
+          </Card>
+        </div>
+      }
+    >
+      <OAuth2CallbackContent />
+    </Suspense>
   );
 }

@@ -11,7 +11,9 @@ services:
       - key: APP_ENVIRONMENT
         value: production
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: deligh-campus-db
+          property: connectionString
       - key: DATABASE_USERNAME
         fromDatabase:
           name: deligh-campus-db

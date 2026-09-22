@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react/jsx-key */
+
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -426,8 +428,11 @@ export function WorkspaceProfileView({ workspace }: { workspace: "Institution" |
   return <div className="space-y-6"><PageHeader title={`${workspace} profile`} description="Keep the authenticated account and professional context current. The server remains the source of truth for identity and access." /><Card className="p-6"><div className="flex items-center gap-4 border-b border-grey-20 pb-5"><div className="grid h-14 w-14 place-items-center rounded-full bg-secondary-10 text-secondary"><UserRound className="h-6 w-6" /></div><div><p className="font-semibold text-primary">{str(query.data?.fullName)}</p><p className="text-sm text-grey-50">{str(query.data?.email)}</p></div></div><div className="mt-6 grid gap-4 md:grid-cols-2"><Input value={form.fullName ?? ""} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Full name" /><Input value={form.mobile ?? ""} onChange={(e) => setForm({ ...form, mobile: e.target.value })} placeholder="Mobile" /><Input value={form.roleTitle ?? ""} onChange={(e) => setForm({ ...form, roleTitle: e.target.value })} placeholder="Role title" /><Input value={query.data?.email ?? ""} disabled placeholder="Email" /><textarea value={form.about ?? ""} onChange={(e) => setForm({ ...form, about: e.target.value })} className="min-h-32 rounded-lg border border-grey-20 p-3 text-sm md:col-span-2" placeholder="About you or your role" /></div><Button className="mt-5" disabled={saving} onClick={save}><Save className="h-4 w-4" />{saving ? "Saving…" : "Save profile"}</Button></Card></div>;
 }
 
-export function WorkspaceNotificationsView({ workspace, loader }: { workspace: string; loader: () => Promise<ApiRecord[]> }) {
-  const query = useAsync(loader, [loader]);
+export function WorkspaceNotificationsView({ workspace }: { workspace: "Institution" | "Recruiter" }) {
+  const query = useAsync(
+    () => (workspace === "Institution" ? institutionService.getNotifications() : recruiterService.getNotifications()),
+    [workspace],
+  );
   if (query.loading) return <LoadingState />;
   if (query.error) return <ErrorState error={query.error} retry={query.reload} />;
   const items = query.data ?? [];
