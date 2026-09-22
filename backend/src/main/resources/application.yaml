@@ -3,9 +3,9 @@ spring:
     name: deligh-campus-api
 
   # Local .env files are only for development. Production deployments must use
-  # the platform environment variables so the app never falls back to localhost.
+  # platform environment variables only so the app never falls back to localhost.
   config:
-    import: ${SPRING_CONFIG_IMPORT:optional:file:.env[.properties]}
+    import: ${SPRING_CONFIG_IMPORT:}
 
   datasource:
     url: ${DATABASE_URL}
@@ -81,19 +81,19 @@ app:
   environment: ${APP_ENVIRONMENT:development}
   frontend:
     url: ${FRONTEND_URL:http://localhost:3000}
-  
+
   security:
     jwt-secret: ${JWT_SECRET}
     jwt-expiration-ms: ${JWT_EXPIRATION:86400000}
     session-timeout-ms: ${SESSION_TIMEOUT_MS:1800000}
-  
+
   database:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     connection-pool-size: ${DB_CONNECTION_POOL_SIZE:10}
     connection-timeout-ms: ${DB_CONNECTION_TIMEOUT_MS:30000}
-  
+
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
     allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
