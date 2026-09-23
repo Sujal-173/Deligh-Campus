@@ -9,7 +9,12 @@ import { ArrowLeft, Plus, RefreshCw, Save, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { AdminBatch, AdminUser, ApiRecord, PageResult } from "@/types/administration";
+import type {
+  AdminBatch,
+  AdminUser,
+  ApiRecord,
+  PageResult,
+} from "@/types/administration";
 import { adminService } from "@/services/admin/admin.service";
 import { superAdminService } from "@/services/super-admin/super-admin.service";
 
@@ -164,12 +169,24 @@ function Pagination({
   if (totalPages <= 1) return null;
   return (
     <div className="flex items-center justify-between rounded-xl border border-grey-20 bg-white px-4 py-3 text-sm">
-      <span className="text-grey-50">Page {page + 1} of {totalPages}</span>
+      <span className="text-grey-50">
+        Page {page + 1} of {totalPages}
+      </span>
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" disabled={page === 0} onClick={() => onChange(page - 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page === 0}
+          onClick={() => onChange(page - 1)}
+        >
           Previous
         </Button>
-        <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => onChange(page + 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page + 1 >= totalPages}
+          onClick={() => onChange(page + 1)}
+        >
           Next
         </Button>
       </div>
@@ -320,13 +337,19 @@ export function AdminUsersView() {
   const [appliedSearch, setAppliedSearch] = useState("");
   const [page, setPage] = useState(0);
   const q = useAsync(
-    () => adminService.listUsers({ page, size: 20, search: appliedSearch || undefined }),
+    () =>
+      adminService.listUsers({
+        page,
+        size: 20,
+        search: appliedSearch || undefined,
+      }),
     [page, appliedSearch],
   );
   const [busy, setBusy] = useState("");
   const toggle = async (id: string, active: boolean) => {
     const action = active ? "deactivate" : "activate";
-    if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+    if (!window.confirm(`Are you sure you want to ${action} this user?`))
+      return;
     setBusy(id);
     try {
       await adminService.updateUserStatus(id, {
@@ -348,22 +371,28 @@ export function AdminUsersView() {
     str(u.email),
     u.roles?.length ? u.roles.join(", ") : str(u.roleTitle),
     <div className="flex flex-wrap gap-1">
-      <span className={u.active ? "rounded-full bg-success-10 px-2 py-1 text-xs font-semibold text-success-80" : "rounded-full bg-error/10 px-2 py-1 text-xs font-semibold text-error"}>
+      <span
+        className={
+          u.active
+            ? "rounded-full bg-success-10 px-2 py-1 text-xs font-semibold text-success-80"
+            : "rounded-full bg-error/10 px-2 py-1 text-xs font-semibold text-error"
+        }
+      >
         {u.active ? "Active" : "Inactive"}
       </span>
-      <span className={u.emailVerified ? "rounded-full bg-success-10 px-2 py-1 text-xs font-semibold text-success-80" : "rounded-full bg-warning/10 px-2 py-1 text-xs font-semibold text-warning-80"}>
+      <span
+        className={
+          u.emailVerified
+            ? "rounded-full bg-success-10 px-2 py-1 text-xs font-semibold text-success-80"
+            : "rounded-full bg-warning/10 px-2 py-1 text-xs font-semibold text-warning-80"
+        }
+      >
         {u.emailVerified ? "Verified" : "Unverified"}
       </span>
     </div>,
     date(u.createdAt),
     <ActionButton
-      label={
-        busy === u.id
-          ? "Saving…"
-          : u.active
-            ? "Deactivate"
-            : "Activate"
-      }
+      label={busy === u.id ? "Saving…" : u.active ? "Deactivate" : "Activate"}
       onClick={() => toggle(u.id, u.active)}
     />,
   ]);
@@ -383,10 +412,21 @@ export function AdminUsersView() {
         placeholder="Search by name or email"
       />
       <Table
-        headers={["User", "Email", "Roles", "Access / email", "Created", "Action"]}
+        headers={[
+          "User",
+          "Email",
+          "Roles",
+          "Access / email",
+          "Created",
+          "Action",
+        ]}
         rows={rows}
       />
-      <Pagination page={d?.page ?? 0} totalPages={d?.totalPages ?? 0} onChange={setPage} />
+      <Pagination
+        page={d?.page ?? 0}
+        totalPages={d?.totalPages ?? 0}
+        onChange={setPage}
+      />
     </div>
   );
 }
@@ -534,32 +574,42 @@ export function AdminCoursesView() {
 
 export function AdminBatchesView() {
   const [page, setPage] = useState(0);
-  const q = useAsync(() => adminService.listBatches({ page, size: 20 }), [page]);
+  const q = useAsync(
+    () => adminService.listBatches({ page, size: 20 }),
+    [page],
+  );
   if (q.loading) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} retry={q.reload} />;
   const d = q.data as PageResult<AdminBatch> | null;
-  const rows = (d?.items ?? []).map(
-    (b) => [
-      <span className="font-semibold">{str(b.name)}</span>,
-      str(b.course_title),
-      str(b.trainer_name),
-      str(b.student_count),
-      str(b.status),
-      date(b.start_date),
-    ],
-  );
+  const rows = (d?.items ?? []).map((b) => [
+    <span className="font-semibold">{str(b.name)}</span>,
+    str(b.course_title),
+    str(b.trainer_name),
+    str(b.student_count),
+    str(b.status),
+    date(b.start_date),
+  ]);
   return (
     <div className="space-y-6">
       <Head
         title="Batch monitoring"
         description="Monitor cohorts, trainer ownership and learner counts."
-        action={<Button variant="outline" onClick={() => q.reload()}><RefreshCw className="h-4 w-4" />Refresh</Button>}
+        action={
+          <Button variant="outline" onClick={() => q.reload()}>
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
       />
       <Table
         headers={["Batch", "Course", "Trainer", "Students", "Status", "Start"]}
         rows={rows}
       />
-      <Pagination page={d?.page ?? 0} totalPages={d?.totalPages ?? 0} onChange={setPage} />
+      <Pagination
+        page={d?.page ?? 0}
+        totalPages={d?.totalPages ?? 0}
+        onChange={setPage}
+      />
     </div>
   );
 }

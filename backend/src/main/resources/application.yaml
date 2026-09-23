@@ -2,10 +2,10 @@ spring:
   application:
     name: deligh-campus-api
 
-  # Local .env files are only for development. Production deployments must use
-  # platform environment variables only so the app never falls back to localhost.
+  # Local .env files are used for development. Render overrides this config to an
+  # empty value so production never silently falls back to localhost.
   config:
-    import: ${SPRING_CONFIG_IMPORT:}
+    import: ${SPRING_CONFIG_IMPORT:optional:file:.env[.properties]}
 
   datasource:
     url: ${DATABASE_URL}
